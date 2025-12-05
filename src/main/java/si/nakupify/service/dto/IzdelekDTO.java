@@ -1,8 +1,9 @@
 package si.nakupify.service.dto;
 
-public class ElementDTO {
+import java.sql.Date;
+import java.util.List;
 
-    private Long id_kosarica;
+public class IzdelekDTO {
 
     private Long id_izdelek;
 
@@ -10,24 +11,12 @@ public class ElementDTO {
 
     private Float cena;
 
-    private Integer kolicina;
+    public IzdelekDTO() {}
 
-    public ElementDTO() {}
-
-    public ElementDTO(Long id_kosarica, Long id_izdelek, String naziv, Float cena, Integer kolicina) {
-        this.id_kosarica = id_kosarica;
+    public IzdelekDTO(Long id_izdelek, String naziv, Float cena) {
         this.id_izdelek = id_izdelek;
         this.naziv = naziv;
         this.cena = cena;
-        this.kolicina = kolicina;
-    }
-
-    public Long getId_kosarica() {
-        return id_kosarica;
-    }
-
-    public void setId_kosarica(Long id_kosarica) {
-        this.id_kosarica = id_kosarica;
     }
 
     public Long getId_izdelek() {
@@ -52,13 +41,5 @@ public class ElementDTO {
 
     public void setCena(Float cena) {
         this.cena = cena;
-    }
-
-    public Integer getKolicina() {
-        return kolicina;
-    }
-
-    public void setKolicina(Integer kolicina) {
-        this.kolicina = kolicina;
     }
 }

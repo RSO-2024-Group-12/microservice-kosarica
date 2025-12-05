@@ -12,17 +12,23 @@ public class Kosarica extends PanacheEntity {
 
     public Long id_izdelek;
 
+    public Float cena;
+
     public Integer kolicina;
 
-    public Timestamp cas_dodajanja;
+    public Timestamp dodano;
+
+    public Timestamp rezervirano;
 
     public Kosarica() {}
 
-    public Kosarica(Long id_uporabnik, Long id_izdelek, Integer kolicina) {
+    public Kosarica(Long id_uporabnik, Long id_izdelek, Float cena, Integer kolicina) {
         this.id_uporabnik = id_uporabnik;
         this.id_izdelek = id_izdelek;
+        this.cena = cena;
         this.kolicina = kolicina;
-        this.cas_dodajanja = new Timestamp(System.currentTimeMillis());
+        this.dodano = new Timestamp(System.currentTimeMillis());
+        this.rezervirano = new Timestamp(System.currentTimeMillis() + 10 * 60 * 1000);
     }
 
 }
