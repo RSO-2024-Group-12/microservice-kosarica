@@ -44,6 +44,7 @@ public class KosaricaService {
     @Scheduled(every="60s")
     @Transactional
     public void schedule() {
+        log.info("");
         kosaricaRepository.odstraniPretekle();
     }
 

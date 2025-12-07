@@ -25,14 +25,14 @@ public class KosaricaREST {
 
     public boolean validacija(KosaricaDTO kosaricaDTO, int mode) {
         if (kosaricaDTO == null || kosaricaDTO.getId_uporabnik() == null) {
-            log.info("Podani manjkajoči ali nepravilni podatki!");
+            log.info("Podani manjkajoči ali nepravilni podatki za košarico!");
             return false;
         }
 
         for (ElementDTO element : kosaricaDTO.getKosarica()) {
             if (mode == 1) {
                 if (element.getId_kosarica() == null) {
-                    log.info("Podani manjkajoči ali nepravilni podatki!");
+                    log.info("Ni podanega id za element košarice!");
                     return false;
                 }
             }
@@ -40,7 +40,7 @@ public class KosaricaREST {
             if (element.getId_izdelek() == null ||
                     element.getCena() == null || element.getCena() <= 0 ||
                     element.getKolicina() == null || element.getKolicina() < 0) {
-                log.info("Podani manjkajoči ali nepravilni podatki!");
+                log.info("Podani manjkajoči ali nepravilni podatki za element košarice!");
                 return false;
             }
         }
