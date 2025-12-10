@@ -1,4 +1,4 @@
-package si.nakupify.endpoint.v1.REST;
+package si.nakupify.endpoint.v1;
 
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -9,6 +9,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import si.nakupify.service.KosaricaService;
 import si.nakupify.service.dto.ElementDTO;
+import si.nakupify.service.dto.ErrorDTO;
 import si.nakupify.service.dto.KosaricaDTO;
 
 import java.util.logging.Logger;
@@ -23,29 +24,46 @@ public class KosaricaREST {
 
     private Logger log = Logger.getLogger(KosaricaREST.class.getName());
 
-    public boolean validacija(KosaricaDTO kosaricaDTO, int mode) {
-        if (kosaricaDTO == null || kosaricaDTO.getId_uporabnik() == null) {
-            log.info("Podani manjkajoči ali nepravilni podatki za košarico!");
-            return false;
+    public ErrorDTO validacija(KosaricaDTO kosaricaDTO, int mode) {
+        if (kosaricaDTO == null) {
+            log.info("Validation fail: KosaricaDTO ne sme biti null");
+            String msg = "Mora biti podan KosaricaDTO!";
+            return new ErrorDTO(400, msg);
         }
 
-        for (ElementDTO element : kosaricaDTO.getKosarica()) {
-            if (mode == 1) {
-                if (element.getId_kosarica() == null) {
-                    log.info("Ni podanega id za element košarice!");
-                    return false;
-                }
-            }
+        if (kosaricaDTO.getId_uporabnik() == null || kosaricaDTO.getKosarica() == null) {
+            log.info("Validation fail: KosaricaDTO mora imeti podana polja: id_uporabnik, kosarica");
+            String msg = "Polji id_uporabnik in kosarica morata biti podana!";
+            return new ErrorDTO(400, msg);
+        }
 
+        if (kosaricaDTO.getKosarica().size() != 1) {
+            log.info("Validation fail: KosaricaDTO kosarica lahko vsebuje le en element");
+            String msg = "Polje kosarica lahko vsebuje le en element!";
+            return new ErrorDTO(400, msg);
+        }
+
+        ElementDTO element = kosaricaDTO.getKosarica().get(0);
+
+        if (mode == 1) {
+            if (element.getId_kosarica() == null || element.getId_izdelek() == null ||
+                    element.getCena() == null || element.getCena() <= 0 ||
+                    element.getKolicina() == null || element.getKolicina() < 0) {
+                log.info("Validation fail: ElementDTO mora imeti podana polja: id_kosarica, id_izdelek, cena, kolicina");
+                String msg = "Pri elementu košarice polja id_kosarica, id_izdelek, cena, kolicina ne smejo biti prazna!";
+                return new ErrorDTO(400, msg);
+            }
+        } else {
             if (element.getId_izdelek() == null ||
                     element.getCena() == null || element.getCena() <= 0 ||
                     element.getKolicina() == null || element.getKolicina() < 0) {
-                log.info("Podani manjkajoči ali nepravilni podatki za element košarice!");
-                return false;
+                log.info("Validation fail: ElementDTO mora imeti podana polja: id_izdelek, cena, kolicina");
+                String msg = "Pri elementu košarice polja id_izdelek, cena, kolicina ne smejo biti prazna!";
+                return new ErrorDTO(400, msg);
             }
         }
 
-        return true;
+        return null;
     }
 
     @GET
@@ -57,7 +75,9 @@ public class KosaricaREST {
     })
     public Response getKosaricaUporabnika(@PathParam("id") Long id) {
         if (id == null) {
-            return Response.status(Response.Status.BAD_REQUEST).build();
+            ErrorDTO parameterError = new ErrorDTO(400, "V URL mora biti podan parameter id.");
+            log.info("Path parameter error: V URL ni podanega id");
+            return Response.status(Response.Status.BAD_REQUEST).entity(parameterError).build();
         }
 
         KosaricaDTO kosarica = kosaricaService.pridobiKosarico(id);
@@ -72,8 +92,9 @@ public class KosaricaREST {
             @APIResponse(responseCode="400", description="(BAD_REQUEST) Podana nepravilna oblika oz. nepopolna oblika KosaricaDTO."),
     })
     public Response createKosarica(KosaricaDTO kosaricaDTO) {
-        if (!validacija(kosaricaDTO, 0)) {
-            return Response.status(Response.Status.BAD_REQUEST).build();
+        ErrorDTO validationError = validacija(kosaricaDTO, 0);
+        if (validationError != null) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(validationError).build();
         }
 
         KosaricaDTO kosarica = kosaricaService.dodajKosarico(kosaricaDTO);
@@ -90,13 +111,15 @@ public class KosaricaREST {
             @APIResponse(responseCode="404", description="(NOT_FOUND) Izdelka v košarici ni bilo mogoče najti.")
     })
     public Response updateKosarica(KosaricaDTO kosaricaDTO) {
-        if (!validacija(kosaricaDTO, 1)) {
-            return Response.status(Response.Status.BAD_REQUEST).build();
+        ErrorDTO validationError = validacija(kosaricaDTO, 1);
+        if (validationError != null) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(validationError).build();
         }
 
         KosaricaDTO kosarica = kosaricaService.posodobiKosarico(kosaricaDTO);
         if (kosarica == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
+            ErrorDTO notFoundError = new ErrorDTO(404, "Elementa kosarice s podanim id_kosarica ni bilo mogoče najti!");
+            return Response.status(Response.Status.NOT_FOUND).entity(notFoundError).build();
         }
 
         return Response.status(Response.Status.OK).entity(kosarica).build();
@@ -111,11 +134,13 @@ public class KosaricaREST {
     })
     public Response deleteKosarica(@PathParam("id") Long id) {
         if (id == null) {
-            return Response.status(Response.Status.BAD_REQUEST).build();
+            ErrorDTO parameterError = new ErrorDTO(400, "V URL mora biti podan parameter id.");
+            log.info("Path parameter error: V URL ni podanega id");
+            return Response.status(Response.Status.BAD_REQUEST).entity(parameterError).build();
         }
 
-        kosaricaService.izbrisiKosarico(id);
+        KosaricaDTO kosarica = kosaricaService.izbrisiKosarico(id);
 
-        return Response.status(Response.Status.NO_CONTENT).build();
+        return Response.status(Response.Status.NO_CONTENT).entity(kosarica).build();
     }
 }

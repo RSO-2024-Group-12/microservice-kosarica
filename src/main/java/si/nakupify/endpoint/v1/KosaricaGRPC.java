@@ -1,4 +1,4 @@
-package si.nakupify.endpoint.v1.gRPC;
+package si.nakupify.endpoint.v1;
 
 import com.google.protobuf.Empty;
 import io.grpc.Status;

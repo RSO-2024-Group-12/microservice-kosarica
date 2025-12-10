@@ -28,7 +28,7 @@ public class Kosarica extends PanacheEntity {
         this.cena = cena;
         this.kolicina = kolicina;
         this.dodano = new Timestamp(System.currentTimeMillis());
-        this.rezervirano = new Timestamp(System.currentTimeMillis() + 10 * 60 * 1000);
+        this.rezervirano = new Timestamp(System.currentTimeMillis() + 20 * 60 * 1000);
     }
 
 }

@@ -52,9 +52,11 @@ public class IzdelekClient {
             JsonNode root = mapper.readTree(response.body());
             JsonNode node = root.path("data").path("getIzdelek");
 
+            //Napaka handler
+
             return new IzdelekDTO(node.path("id_izdelek").asLong(), node.path("naziv").asText(), (float) node.path("cena").asDouble());
         } catch (Exception e) {
-            log.log(Level.SEVERE, "Napaka pri komunikaciji z mikrostoritvijo Katalog izdelek.", e.getMessage());
+            log.log(Level.SEVERE, "Napaka pri komunikaciji z mikrostoritvijo Katalog izdelek. Napaka: ", e.getMessage());
             return new IzdelekDTO();
         }
     }
