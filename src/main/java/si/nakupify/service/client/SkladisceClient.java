@@ -1,10 +1,11 @@
 package si.nakupify.service.client;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import si.nakupify.service.dto.ErrorDTO;
+import si.nakupify.service.dto.PairDTO;
 import si.nakupify.service.dto.RequestDTO;
 import si.nakupify.service.dto.ResponseDTO;
 
@@ -31,7 +32,7 @@ public class SkladisceClient {
         mapper = new ObjectMapper();
     }
 
-    public ResponseDTO postRequestDTO(RequestDTO requestDTO) {
+    public PairDTO<ResponseDTO, ErrorDTO> postRequestDTO(RequestDTO requestDTO) {
         try {
             String payload = mapper.writeValueAsString(requestDTO);
 
@@ -42,17 +43,20 @@ public class SkladisceClient {
                     .build();
 
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            JsonNode node = mapper.readTree(response.body());
 
             if (response.statusCode() == 404) {
-                log.info("HTTP response code 404: Zaloga izdelka z id=" + requestDTO.getId_product() + " ne obstaja!");
-                return null;
+                log.info("HTTP response code 404: Zaloge za izdelek z id=" + requestDTO.getId_product() + " ni bilo mogoče najti");
+                ErrorDTO error = mapper.readValue(response.body(), ErrorDTO.class);
+                return new PairDTO<>(null, error);
             }
 
-            return new ResponseDTO(node.path("id_request").asText(), node.path("status").asBoolean());
+            ResponseDTO responseDTO = mapper.readValue(response.body(), ResponseDTO.class);
+
+            return new PairDTO<>(responseDTO, null);
         } catch (Exception e) {
             log.severe("Communication error: Napaka pri komunikaciji z microservice-skladisce. Napaka: " + e.getMessage());
-            return null;
+            ErrorDTO error = new ErrorDTO(503, "Napaka pri komunikaciji z microservice-skladisce.");
+            return new PairDTO<>(null, error);
         }
     }
 

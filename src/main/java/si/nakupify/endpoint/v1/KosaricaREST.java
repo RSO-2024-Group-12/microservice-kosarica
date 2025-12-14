@@ -5,12 +5,12 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import si.nakupify.service.KosaricaService;
-import si.nakupify.service.dto.ElementDTO;
-import si.nakupify.service.dto.ErrorDTO;
-import si.nakupify.service.dto.KosaricaDTO;
+import si.nakupify.service.dto.*;
 
 import java.util.logging.Logger;
 
@@ -68,79 +68,231 @@ public class KosaricaREST {
 
     @GET
     @Path("{id}")
-    @Operation(summary="Pridobi košarico", description="Vrne košarico uporabnika s podanim id.")
+    @Operation(
+            summary="Pridobi košarico",
+            description="Vrne košarico uporabnika s podanim id.<br>" +
+                    "V primeru napake vrne objekt ErrorDTO z opisom napake."
+    )
     @APIResponses({
-            @APIResponse(responseCode="200", description="(OK) Uspešno vrne košarico uporabika s podanim id."),
-            @APIResponse(responseCode="400", description="(BAD_REQUEST) Podana nepravilna oblika id v url."),
+            @APIResponse(
+                    responseCode="200",
+                    description="(OK) Uspešno vrne košarico uporabika s podanim id.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = KosaricaDTO.class)
+                    )),
+            @APIResponse(
+                    responseCode="400",
+                    description="(BAD_REQUEST) Podana nepravilna oblika URL.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    )),
+            @APIResponse(
+                    responseCode="404",
+                    description="(NOT_FOUND) Ni bilo mogoče najti vseh potrebnih podatkov.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    )),
+            @APIResponse(responseCode="503",
+                    description="(SERVICE UNAVALIABLE) Težava pri komunikaciji z drugo mikrostoritvijo.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    ))
     })
     public Response getKosaricaUporabnika(@PathParam("id") Long id) {
         if (id == null) {
             ErrorDTO parameterError = new ErrorDTO(400, "V URL mora biti podan parameter id.");
             log.info("Path parameter error: V URL ni podanega id");
-            return Response.status(Response.Status.BAD_REQUEST).entity(parameterError).build();
+            return Response.status(parameterError.getErrorCode()).entity(parameterError).build();
         }
 
-        KosaricaDTO kosarica = kosaricaService.pridobiKosarico(id);
+        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.pridobiKosarico(id);
+        KosaricaDTO kosarica = pair.getValue();
+        ErrorDTO error = pair.getError();
 
-        return Response.status(Response.Status.OK).entity(kosarica).build();
+        if (error != null) {
+            return Response.status(error.getErrorCode()).entity(error).build();
+        }
+
+        return Response.status(200).entity(kosarica).build();
     }
 
     @POST
-    @Operation(summary="Ustvari košarico", description="Doda nove izdelke v košarico uporabnika.")
+    @Operation(
+            summary="Dodaj nov izdelek v košarico",
+            description="Doda nov izdelek v košarico uporabnika.<br>" +
+                    "V primeru napake vrne objekt ErrorDTO z opisom napake."
+    )
     @APIResponses({
-            @APIResponse(responseCode="201", description="(CREATED) Uspešno ustvarjena košarica."),
-            @APIResponse(responseCode="400", description="(BAD_REQUEST) Podana nepravilna oblika oz. nepopolna oblika KosaricaDTO."),
+            @APIResponse(
+                    responseCode="201",
+                    description="(CREATED) Uspešno dodan izdelek v košarico.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = KosaricaDTO.class)
+                    )),
+            @APIResponse(
+                    responseCode="400",
+                    description="(BAD_REQUEST) Podana nepravilna oblika vhodnega objekta KosaricaDTO.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    )),
+            @APIResponse(
+                    responseCode="404",
+                    description="(NOT_FOUND) Ni bilo mogoče najti vseh potrebnih podatkov.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    )),
+            @APIResponse(
+                    responseCode="409",
+                    description="(CONFLICT) Ni bilo mogoče dodati izdelka v košarico - premalo zaloge.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    )),
+            @APIResponse(
+                    responseCode="503",
+                    description="(SERVICE UNAVALIABLE) Težava pri komunikaciji z drugo mikrostoritvijo.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    ))
     })
     public Response createKosarica(KosaricaDTO kosaricaDTO) {
         ErrorDTO validationError = validacija(kosaricaDTO, 0);
         if (validationError != null) {
-            return Response.status(Response.Status.BAD_REQUEST).entity(validationError).build();
+            return Response.status(validationError.getErrorCode()).entity(validationError).build();
         }
 
-        KosaricaDTO kosarica = kosaricaService.dodajKosarico(kosaricaDTO);
+        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.dodajKosarico(kosaricaDTO);
+        KosaricaDTO kosarica = pair.getValue();
+        ErrorDTO error = pair.getError();
 
-        return Response.status(Response.Status.CREATED).entity(kosarica).build();
+        if (error != null) {
+            return Response.status(error.getErrorCode()).entity(error).build();
+        }
+
+        return Response.status(201).entity(kosarica).build();
     }
 
     @PUT
-    @Operation(summary="Posodobi košarico", description="Posodobi količine izdelkov v košarici.<br>" +
-                "V kolikor ima izdelek podano količino 0, bo odstranjen iz košarice.")
+    @Operation(
+            summary="Posodobi količino izdelka v košarici",
+            description="Posodobi količino izdelka v košarici.<br>" +
+                    "V primeru, da ima nastavljeno količino na 0, bo odstranjen iz košarice.<br>" +
+                    "V primeru napake vrne objekt ErrorDTO z opisom napake."
+    )
     @APIResponses({
-            @APIResponse(responseCode="200", description="(OK) Uspešno posodobljena košarica."),
-            @APIResponse(responseCode="400", description="(BAD_REQUEST) Podana nepravilna oblika oz. nepopolna oblika KosaricaDTO."),
-            @APIResponse(responseCode="404", description="(NOT_FOUND) Izdelka v košarici ni bilo mogoče najti.")
+            @APIResponse(
+                    responseCode="200",
+                    description="(OK) Uspešno posodobljen košarica.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = KosaricaDTO.class)
+                    )),
+            @APIResponse(
+                    responseCode="400",
+                    description="(BAD_REQUEST) Podana nepravilna oblika vhodnega objekta KosaricaDTO.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    )),
+            @APIResponse(
+                    responseCode="404",
+                    description="(NOT_FOUND) Ni bilo mogoče najti vseh potrebnih podatkov.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    )),
+            @APIResponse(
+                    responseCode="409",
+                    description="(CONFLICT) Ni bilo mogoče posodobiti količine izdelka v košarici - premalo zaloge.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    )),
+            @APIResponse(
+                    responseCode="503",
+                    description="(SERVICE UNAVALIABLE) Težava pri komunikaciji z drugo mikrostoritvijo.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    ))
     })
     public Response updateKosarica(KosaricaDTO kosaricaDTO) {
         ErrorDTO validationError = validacija(kosaricaDTO, 1);
         if (validationError != null) {
-            return Response.status(Response.Status.BAD_REQUEST).entity(validationError).build();
+            return Response.status(validationError.getErrorCode()).entity(validationError).build();
         }
 
-        KosaricaDTO kosarica = kosaricaService.posodobiKosarico(kosaricaDTO);
-        if (kosarica == null) {
-            ErrorDTO notFoundError = new ErrorDTO(404, "Elementa kosarice s podanim id_kosarica ni bilo mogoče najti!");
-            return Response.status(Response.Status.NOT_FOUND).entity(notFoundError).build();
+        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.posodobiKosarico(kosaricaDTO);
+        KosaricaDTO kosarica = pair.getValue();
+        ErrorDTO error = pair.getError();
+
+        if (error != null) {
+            return Response.status(error.getErrorCode()).entity(error).build();
         }
 
-        return Response.status(Response.Status.OK).entity(kosarica).build();
+        return Response.status(200).entity(kosarica).build();
     }
 
     @DELETE
     @Path("{id}")
-    @Operation(summary="Izbriši košarico", description="Izbriše košarico uporabnika s podanim id.")
+    @Operation(
+            summary="Izbriši košarico",
+            description="Izbriše košarico uporabnika s podanim id.<br>" +
+                    "V primeru napake vrne objekt ErrorDTO z opisom napake."
+    )
     @APIResponses({
-            @APIResponse(responseCode="204", description="(NO_CONTENT) Uspešno izbriše košarico uporabnika s podanim id."),
-            @APIResponse(responseCode="400", description="(BAD_REQUEST) Podana nepravilna oblika id v url."),
+            @APIResponse(
+                    responseCode="204",
+                    description="(NO_CONTENT) Uspešno izbriše košarico uporabnika s podanim id.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = KosaricaDTO.class)
+                    )),
+            @APIResponse(
+                    responseCode="400",
+                    description="(BAD_REQUEST) Podana nepravilna oblika URL.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    )),
+            @APIResponse(
+                    responseCode="404",
+                    description="(NOT_FOUND) Ni bilo mogoče najti vseh potrebnih podatkov.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    )),
+            @APIResponse(
+                    responseCode="503",
+                    description="(SERVICE UNAVALIABLE) Težava pri komunikaciji z drugo mikrostoritvijo.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    ))
     })
     public Response deleteKosarica(@PathParam("id") Long id) {
         if (id == null) {
             ErrorDTO parameterError = new ErrorDTO(400, "V URL mora biti podan parameter id.");
             log.info("Path parameter error: V URL ni podanega id");
-            return Response.status(Response.Status.BAD_REQUEST).entity(parameterError).build();
+            return Response.status(parameterError.getErrorCode()).entity(parameterError).build();
         }
 
-        KosaricaDTO kosarica = kosaricaService.izbrisiKosarico(id);
+        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.izbrisiKosarico(id);
+        KosaricaDTO kosarica = pair.getValue();
+        ErrorDTO error = pair.getError();
 
-        return Response.status(Response.Status.NO_CONTENT).entity(kosarica).build();
+        if (error != null) {
+            return Response.status(error.getErrorCode()).entity(error).build();
+        }
+
+        return Response.status(204).entity(kosarica).build();
     }
 }

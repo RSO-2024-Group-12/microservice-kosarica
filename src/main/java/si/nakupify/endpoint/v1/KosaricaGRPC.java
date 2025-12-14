@@ -6,10 +6,13 @@ import io.quarkus.grpc.GrpcService;
 import io.smallrye.common.annotation.Blocking;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.core.Response;
 import si.nakupify.proto.*;
 import si.nakupify.service.KosaricaService;
 import si.nakupify.service.dto.ElementDTO;
+import si.nakupify.service.dto.ErrorDTO;
 import si.nakupify.service.dto.KosaricaDTO;
+import si.nakupify.service.dto.PairDTO;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,8 +27,6 @@ public class KosaricaGRPC implements gRPCKosaricaService {
     private Logger log = Logger.getLogger(KosaricaGRPC.class.getName());
 
     public boolean validacija(KosaricaDTO kosaricaDTO, int mode) {
-        System.out.println(kosaricaDTO.toString());
-
         if (kosaricaDTO == null || kosaricaDTO.getId_uporabnik() == null) {
             log.info("Podani manjkajoči ali nepravilni podatki! 1");
             return false;
@@ -95,7 +96,18 @@ public class KosaricaGRPC implements gRPCKosaricaService {
             return Uni.createFrom().failure(Status.INVALID_ARGUMENT.asRuntimeException());
         }
 
-        KosaricaDTO kosarica = kosaricaService.pridobiKosarico(request.getIdUporabnik());
+        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.pridobiKosarico(request.getIdUporabnik());
+        KosaricaDTO kosarica = pair.getValue();
+        ErrorDTO error = pair.getError();
+
+        if (error != null) {
+            if (error.getErrorCode() == 404) {
+                return Uni.createFrom().failure(Status.NOT_FOUND.asRuntimeException());
+            }
+            if (error.getErrorCode() == 503) {
+                return Uni.createFrom().failure(Status.UNAVAILABLE.asRuntimeException());
+            }
+        }
 
         return Uni.createFrom().item(toGrpc(kosarica));
     }
@@ -103,13 +115,27 @@ public class KosaricaGRPC implements gRPCKosaricaService {
     @Override
     @Blocking
     public Uni<gRPCKosaricaDTO> createKosarica(CreateKosaricaRequest request) {
-        KosaricaDTO kosaricaDTOInput = toDto(request.getKosarica());
+        KosaricaDTO kosaricaDTO = toDto(request.getKosarica());
 
-        if (!validacija(kosaricaDTOInput, 0)) {
+        if (!validacija(kosaricaDTO, 0)) {
             return  Uni.createFrom().failure(Status.INVALID_ARGUMENT.asRuntimeException());
         }
 
-        KosaricaDTO kosarica = kosaricaService.dodajKosarico(kosaricaDTOInput);
+        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.dodajKosarico(kosaricaDTO);
+        KosaricaDTO kosarica = pair.getValue();
+        ErrorDTO error = pair.getError();
+
+        if (error != null) {
+            if (error.getErrorCode() == 404) {
+                return Uni.createFrom().failure(Status.NOT_FOUND.asRuntimeException());
+            }
+            if (error.getErrorCode() == 409) {
+                return Uni.createFrom().failure(Status.ALREADY_EXISTS.asRuntimeException());
+            }
+            if (error.getErrorCode() == 503) {
+                return Uni.createFrom().failure(Status.UNAVAILABLE.asRuntimeException());
+            }
+        }
 
         return Uni.createFrom().item(toGrpc(kosarica));
     }
@@ -123,9 +149,20 @@ public class KosaricaGRPC implements gRPCKosaricaService {
             return  Uni.createFrom().failure(Status.INVALID_ARGUMENT.asRuntimeException());
         }
 
-        KosaricaDTO kosarica = kosaricaService.posodobiKosarico(kosaricaDTOInput);
-        if (kosarica == null) {
-            return Uni.createFrom().failure(Status.NOT_FOUND.asRuntimeException());
+        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.posodobiKosarico(kosaricaDTOInput);
+        KosaricaDTO kosarica = pair.getValue();
+        ErrorDTO error = pair.getError();
+
+        if (error != null) {
+            if (error.getErrorCode() == 404) {
+                return Uni.createFrom().failure(Status.NOT_FOUND.asRuntimeException());
+            }
+            if (error.getErrorCode() == 409) {
+                return Uni.createFrom().failure(Status.ALREADY_EXISTS.asRuntimeException());
+            }
+            if (error.getErrorCode() == 503) {
+                return Uni.createFrom().failure(Status.UNAVAILABLE.asRuntimeException());
+            }
         }
 
         return Uni.createFrom().item(toGrpc(kosarica));

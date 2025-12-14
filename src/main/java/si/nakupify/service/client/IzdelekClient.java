@@ -6,9 +6,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.jboss.logmanager.Level;
 import si.nakupify.service.KosaricaService;
+import si.nakupify.service.dto.ErrorDTO;
 import si.nakupify.service.dto.IzdelekDTO;
+import si.nakupify.service.dto.PairDTO;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -34,7 +35,7 @@ public class IzdelekClient {
         mapper = new ObjectMapper();
     }
 
-    public IzdelekDTO getIzdelekDTO(Long id_izdelek) {
+    public PairDTO<IzdelekDTO, ErrorDTO> getIzdelekDTO(Long id_izdelek) {
         try {
             String query = "query ($id: BigInteger) { getIzdelek(id: $id) { id_izdelek naziv cena } }";
             String payload = mapper.writeValueAsString(Map.of(
@@ -50,14 +51,28 @@ public class IzdelekClient {
 
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             JsonNode root = mapper.readTree(response.body());
+
+            if (response.statusCode() == 404) {
+                log.info("HTTP response code 404: Izdelka z id=" + id_izdelek + " ni bilo mogoče najti");
+                JsonNode node = root.path("error").path("extensions");
+                ErrorDTO error = new ErrorDTO(node.path("code").asInt(), node.path("error").asText());
+                return new PairDTO<>(null, error);
+            }
+
+            if (response.statusCode() == 503) {
+                log.info("HTTP response code 503: Napaka pri komunikaciji z microservice-izdelki");
+                ErrorDTO error = new ErrorDTO(503, "Napaka pri komunikaciji z microservice-izdelki.");
+                return new PairDTO<>(null, error);
+            }
+
             JsonNode node = root.path("data").path("getIzdelek");
+            IzdelekDTO izdelekDTO = mapper.readValue(node.toString(), IzdelekDTO.class);
 
-            //Napaka handler
-
-            return new IzdelekDTO(node.path("id_izdelek").asLong(), node.path("naziv").asText(), (float) node.path("cena").asDouble());
+            return new PairDTO<>(izdelekDTO, null);
         } catch (Exception e) {
-            log.log(Level.SEVERE, "Napaka pri komunikaciji z mikrostoritvijo Katalog izdelek. Napaka: ", e.getMessage());
-            return new IzdelekDTO();
+            log.severe("Communication error: Napaka pri komunikaciji z microservice-izdelki. Napaka: " + e.getMessage());
+            ErrorDTO error = new ErrorDTO(503, "Napaka pri komunikaciji z microservice-izdelki.");
+            return new PairDTO<>(null, error);
         }
     }
 }
