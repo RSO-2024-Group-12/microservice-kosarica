@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "si.nakupify.proto";
+option java_outer_classname = "KosaricaServiceProto";
+
+import "google/protobuf/empty.proto";
+
+message gRPCElementDTO {
+  int64 id_kosarica = 1;
+  int64 id_izdelek = 2;
+  string naziv = 3;
+  float cena = 4;
+  int32 kolicina = 5;
+}
+
+message gRPCKosaricaDTO {
+  int64 id_uporabnik = 1;
+  repeated gRPCElementDTO kosarica = 2;
+}
+
+service gRPCKosaricaService {
+  rpc getKosarica (GetKosaricaRequest) returns (gRPCKosaricaDTO);
+  rpc createKosarica (CreateKosaricaRequest) returns (gRPCKosaricaDTO);
+  rpc updateKosarica (UpdateKosaricaRequest) returns (gRPCKosaricaDTO);
+  rpc deleteKosarica (DeleteKosaricaRequest) returns (google.protobuf.Empty);
+}
+
+message GetKosaricaRequest {
+  int64 id_uporabnik = 1;
+}
+
+message CreateKosaricaRequest {
+  gRPCKosaricaDTO kosarica = 1;
+}
+
+message UpdateKosaricaRequest {
+  gRPCKosaricaDTO kosarica = 1;
+}
+
+message DeleteKosaricaRequest {
+  int64 id_uporabnik = 1;
+}
