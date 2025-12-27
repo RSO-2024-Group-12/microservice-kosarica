@@ -42,6 +42,10 @@ public class KosaricaService {
         log.info("Ustavitev microservice-kosarica.");
     }
 
+    public void setVertx(Vertx vertx) {
+        this.vertx = vertx;
+    }
+
     public RequestDTO createRequest(String type, Long id_product, Long id_user, Integer add, Integer remove) {
         RequestDTO requestDTO = new RequestDTO();
         requestDTO.setId_request(UUID.randomUUID().toString());

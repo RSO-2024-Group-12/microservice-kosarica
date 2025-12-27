@@ -1,11 +1,12 @@
 # Name of this service
 SERVICE := 'microservice-kosarica'
+CONTEXT := 'nakupify-platform'
 
 build:
     docker build -t $(SERVICE):latest .
 
 load-image:
-    minikube image load $(SERVICE):latest --profile webshop
+    minikube image load $(SERVICE):latest --profile {{ CONTEXT }}
 
 start:
     just --justfile ../infra/Justfile start
