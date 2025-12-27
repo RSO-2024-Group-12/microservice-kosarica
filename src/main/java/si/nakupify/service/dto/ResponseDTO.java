@@ -1,6 +1,5 @@
 package si.nakupify.service.dto;
 
-
 import java.io.Serializable;
 
 public class ResponseDTO implements Serializable {

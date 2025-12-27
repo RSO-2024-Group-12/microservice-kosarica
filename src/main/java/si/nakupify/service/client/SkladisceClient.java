@@ -59,5 +59,4 @@ public class SkladisceClient {
             return new PairDTO<>(null, error);
         }
     }
-
 }
