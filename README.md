@@ -81,7 +81,7 @@ Za izdelavo *über-jar* (vsebuje vse odvisnosti):
 Aplikacijo lahko zapakirate v Docker sliko z ukazom:
 
 ```shell script
-docker build -t nakupify/microservice-narocila .
+docker build -t nakupify/microservice-kosarica .
 ```
 
 ## Konfiguracija
