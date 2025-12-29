@@ -10,5 +10,13 @@ service:
   port: 80
   targetPort: 8081
 
+probes:
+  liveness:
+    enabled: true
+    path: /q/health/live
+  readiness:
+    enabled: true
+    path: /q/health/ready
+
 nameOverride: ""
 fullnameOverride: ""

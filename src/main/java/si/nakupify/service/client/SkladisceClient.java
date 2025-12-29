@@ -4,10 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import si.nakupify.service.dto.ErrorDTO;
-import si.nakupify.service.dto.PairDTO;
-import si.nakupify.service.dto.RequestDTO;
-import si.nakupify.service.dto.ResponseDTO;
+import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
+import org.eclipse.microprofile.faulttolerance.Fallback;
+import org.eclipse.microprofile.faulttolerance.Retry;
+import org.eclipse.microprofile.faulttolerance.Timeout;
+import si.nakupify.service.dto.*;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -32,6 +33,22 @@ public class SkladisceClient {
         mapper = new ObjectMapper();
     }
 
+    public PairDTO<ResponseDTO, ErrorDTO> comunicationError(RequestDTO requestDTO) {
+        ErrorDTO error = new ErrorDTO(503, "Napaka pri komunikaciji z microservice-skladisce.");
+        return new PairDTO<>(null, error);
+    }
+
+    @Retry(
+            maxRetries = 3,
+            delay = 500
+    )
+    @Timeout(2000)
+    @CircuitBreaker(
+            requestVolumeThreshold = 5,
+            failureRatio = 0.5,
+            delay = 10000
+    )
+    @Fallback(fallbackMethod = "comunicationError")
     public PairDTO<ResponseDTO, ErrorDTO> postRequestDTO(RequestDTO requestDTO) {
         try {
             String payload = mapper.writeValueAsString(requestDTO);
@@ -55,8 +72,7 @@ public class SkladisceClient {
             return new PairDTO<>(responseDTO, null);
         } catch (Exception e) {
             log.severe("Communication error: Napaka pri komunikaciji z microservice-skladisce. Napaka: " + e.getMessage());
-            ErrorDTO error = new ErrorDTO(503, "Napaka pri komunikaciji z microservice-skladisce.");
-            return new PairDTO<>(null, error);
+            throw new RuntimeException(e);
         }
     }
 }

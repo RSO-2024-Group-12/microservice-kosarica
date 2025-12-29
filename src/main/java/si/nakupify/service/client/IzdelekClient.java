@@ -6,6 +6,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
+import org.eclipse.microprofile.faulttolerance.Fallback;
+import org.eclipse.microprofile.faulttolerance.Retry;
+import org.eclipse.microprofile.faulttolerance.Timeout;
 import si.nakupify.service.KosaricaService;
 import si.nakupify.service.dto.ErrorDTO;
 import si.nakupify.service.dto.IzdelekDTO;
@@ -35,6 +39,22 @@ public class IzdelekClient {
         mapper = new ObjectMapper();
     }
 
+    public PairDTO<IzdelekDTO, ErrorDTO> comunicationError(Long id_izdelek) {
+        ErrorDTO error = new ErrorDTO(503, "Napaka pri komunikaciji z microservice-izdelki.");
+        return new PairDTO<>(null, error);
+    }
+
+    @Retry(
+            maxRetries = 3,
+            delay = 500
+    )
+    @Timeout(2000)
+    @CircuitBreaker(
+            requestVolumeThreshold = 5,
+            failureRatio = 0.5,
+            delay = 10000
+    )
+    @Fallback(fallbackMethod = "comunicationError")
     public PairDTO<IzdelekDTO, ErrorDTO> getIzdelekDTO(Long id_izdelek) {
         try {
             String query = "query ($id: BigInteger) { getIzdelek(id: $id) { id_izdelek naziv cena } }";
@@ -71,8 +91,7 @@ public class IzdelekClient {
             return new PairDTO<>(izdelekDTO, null);
         } catch (Exception e) {
             log.severe("Communication error: Napaka pri komunikaciji z microservice-izdelki. Napaka: " + e.getMessage());
-            ErrorDTO error = new ErrorDTO(503, "Napaka pri komunikaciji z microservice-izdelki.");
-            return new PairDTO<>(null, error);
+            throw new RuntimeException(e);
         }
     }
 }
