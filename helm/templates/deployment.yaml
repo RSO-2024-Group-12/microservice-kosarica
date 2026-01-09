@@ -18,19 +18,42 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.service.targetPort }}
-          {{ - if .Values.probes.liveness.enabled }}
+
+          resources:
+            requests:
+              memory: {{.Values.resources.requests.memory | quote}}
+              cpu: {{.Values.resources.requests.cpu | quote}}
+            limits:
+              memory: {{.Values.resources.limits.memory | quote}}
+              cpu: {{.Values.resources.limits.cpu | quote}}
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: {{.Values.config.kafka.bootstrapServers | quote}}
+            - name: QUARKUS_DATASOURCE_USERNAME
+              value: {{.Values.config.postgres.username | quote}}
+            - name: QUARKUS_DATASOURCE_PASSWORD
+              value: {{.Values.config.postgres.password | quote}}
+            - name: QUARKUS_DATASOURCE_JDBC_URL
+              value: {{.Values.config.postgres.jdbcUrl | quote}}
+            - name: QUARKUS_OIDC_TENANT_ENABLED
+              value: "false"
+            - name: IZDELEK_URL
+              value: {{.Values.config.izdelekUrl | quote}}
+            - name: SKLADISCE_URL
+              value: {{.Values.config.skladisceUrl | quote}}
+          {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
             httpGet:
               path: {{ .Values.probes.liveness.path }}
               port: {{ .Values.service.targetPort }}
             initialDelaySeconds: 10
             periodSeconds: 10
-          {{ - end }}
-          {{ - if .Values.probes.readiness.enabled }}
+          {{- end }}
+          {{- if .Values.probes.readiness.enabled }}
           readinessProbe:
             httpGet:
               path: {{ .Values.probes.readiness.path }}
               port: {{ .Values.service.targetPort }}
             initialDelaySeconds: 10
             periodSeconds: 10
-          {{ - end }}
+          {{- end }}

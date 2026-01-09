@@ -2,7 +2,6 @@ package si.nakupify.service.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -28,7 +27,7 @@ public class IzdelekClient {
     private HttpClient client;
     private ObjectMapper mapper;
 
-    @ConfigProperty(name="izdelek.url")
+    @ConfigProperty(name = "izdelek.url")
     private String izdelkiUrl;
 
     private Logger log = Logger.getLogger(KosaricaService.class.getName());
@@ -57,7 +56,7 @@ public class IzdelekClient {
     @Fallback(fallbackMethod = "comunicationError")
     public PairDTO<IzdelekDTO, ErrorDTO> getIzdelekDTO(Long id_izdelek) {
         try {
-            String query = "query ($id: BigInteger) { getIzdelek(id: $id) { id_izdelek naziv cena } }";
+            String query = "query ($id: BigInteger) { getIzdelek(id: $id) { id_izdelek naziv cena }}";
             String payload = mapper.writeValueAsString(Map.of(
                     "query", query,
                     "variables", Map.of("id", id_izdelek)

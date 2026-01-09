@@ -64,21 +64,21 @@ jobs:
           docker tag $REPO $IMAGE
           docker push $IMAGE
 
-#      - name: Configure kubeconfig
-#        run: |
-#          mkdir -p ~/.kube
-#          echo "${{ secrets.KUBE_CONFIG }}" | base64 --decode > ~/.kube/config
-#
-#      - name: Install Helm
-#        run: |
-#          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-#
-#      - name: Deploy to Kubernetes
-#        run: |
-#          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-#          REPO=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
-#          IMAGE=ghcr.io/$OWNER/$REPO
-#
-#          helm upgrade --install $REPO ./helm \
-#          --set image.repository=$IMAGE \
-#          --set image.tag=${{ github.sha }}
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 --decode > ~/.kube/config
+
+      - name: Install Helm
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+      - name: Deploy to Kubernetes
+        run: |
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          REPO=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE=ghcr.io/$OWNER/$REPO
+
+          helm upgrade --install $REPO ./helm \
+          --set image.repository=$IMAGE \
+          --set image.tag=${{ github.sha }}

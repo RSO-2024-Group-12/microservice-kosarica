@@ -1,4 +1,4 @@
-replicaCount: 2
+replicaCount: 1
 
 image:
   repository: ghcr.io/rso-2024-group-12/microservice-kosarica
@@ -7,8 +7,12 @@ image:
 
 service:
   type: ClusterIP
+  # HTTP
   port: 80
   targetPort: 8081
+  # gRPC
+  grpcPort: 9001
+  grpcTargetPort: 9001
 
 probes:
   liveness:
@@ -18,5 +22,20 @@ probes:
     enabled: true
     path: /q/health/ready
 
-nameOverride: ""
-fullnameOverride: ""
+config:
+  skladisceUrl: "http://microservice-skladisce-service/v1/skladisce"
+  izdelekUrl: "http://microservice-izdelki-service/graphql"
+  kafka:
+    bootstrapServers: "nakupify-kafka-kafka-bootstrap.default.svc.cluster.local:9092"
+  postgres:
+    username: "nakupify"
+    password: "nakupify"
+    jdbcUrl: "jdbc:postgresql://nakupify-db-rw.default.svc.cluster.local:5432/nakupify"
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
