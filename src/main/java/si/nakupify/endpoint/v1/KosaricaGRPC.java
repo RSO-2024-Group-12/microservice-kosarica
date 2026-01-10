@@ -9,6 +9,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
 import si.nakupify.proto.*;
 import si.nakupify.service.KosaricaService;
+import si.nakupify.service.TenantService;
 import si.nakupify.service.dto.ElementDTO;
 import si.nakupify.service.dto.ErrorDTO;
 import si.nakupify.service.dto.KosaricaDTO;
@@ -23,6 +24,9 @@ public class KosaricaGRPC implements gRPCKosaricaService {
 
     @Inject
     KosaricaService kosaricaService;
+
+    @Inject
+    TenantService tenantService;
 
     private Logger log = Logger.getLogger(KosaricaGRPC.class.getName());
 
@@ -53,7 +57,8 @@ public class KosaricaGRPC implements gRPCKosaricaService {
 
     public gRPCKosaricaDTO toGrpc(KosaricaDTO kosaricaDTO) {
         gRPCKosaricaDTO.Builder protoKosarica = gRPCKosaricaDTO.newBuilder()
-                .setIdUporabnik(kosaricaDTO.getId_uporabnik());
+                .setIdUporabnik(kosaricaDTO.getId_uporabnik())
+                .setTenant(kosaricaDTO.getTenant());
 
         for (ElementDTO e : kosaricaDTO.getKosarica()) {
             gRPCElementDTO.Builder elementBuilder = gRPCElementDTO.newBuilder();
@@ -86,7 +91,7 @@ public class KosaricaGRPC implements gRPCKosaricaService {
             elementi.add(element);
         }
 
-        return new KosaricaDTO(protoKosarica.getIdUporabnik(), elementi);
+        return new KosaricaDTO(protoKosarica.getIdUporabnik(), protoKosarica.getTenant(), elementi);
     }
 
     @Override
@@ -96,7 +101,13 @@ public class KosaricaGRPC implements gRPCKosaricaService {
             return Uni.createFrom().failure(Status.INVALID_ARGUMENT.asRuntimeException());
         }
 
-        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.pridobiKosarico(request.getIdUporabnik());
+        String tenant = tenantService.getTenant();
+
+        if (tenant == null) {
+            return Uni.createFrom().failure(Status.PERMISSION_DENIED.asRuntimeException());
+        }
+
+        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.pridobiKosarico(request.getIdUporabnik(), tenant);
         KosaricaDTO kosarica = pair.getValue();
         ErrorDTO error = pair.getError();
 
@@ -121,7 +132,13 @@ public class KosaricaGRPC implements gRPCKosaricaService {
             return  Uni.createFrom().failure(Status.INVALID_ARGUMENT.asRuntimeException());
         }
 
-        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.dodajKosarico(kosaricaDTO);
+        String tenant = tenantService.getTenant();
+
+        if (tenant == null) {
+            return Uni.createFrom().failure(Status.PERMISSION_DENIED.asRuntimeException());
+        }
+
+        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.dodajKosarico(kosaricaDTO, tenant);
         KosaricaDTO kosarica = pair.getValue();
         ErrorDTO error = pair.getError();
 
@@ -149,7 +166,13 @@ public class KosaricaGRPC implements gRPCKosaricaService {
             return  Uni.createFrom().failure(Status.INVALID_ARGUMENT.asRuntimeException());
         }
 
-        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.posodobiKosarico(kosaricaDTOInput);
+        String tenant = tenantService.getTenant();
+
+        if (tenant == null) {
+            return Uni.createFrom().failure(Status.PERMISSION_DENIED.asRuntimeException());
+        }
+
+        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.posodobiKosarico(kosaricaDTOInput, tenant);
         KosaricaDTO kosarica = pair.getValue();
         ErrorDTO error = pair.getError();
 
@@ -175,7 +198,13 @@ public class KosaricaGRPC implements gRPCKosaricaService {
             return Uni.createFrom().failure(Status.INVALID_ARGUMENT.asRuntimeException());
         }
 
-        kosaricaService.izbrisiKosarico(request.getIdUporabnik());
+        String tenant = tenantService.getTenant();
+
+        if (tenant == null) {
+            return Uni.createFrom().failure(Status.PERMISSION_DENIED.asRuntimeException());
+        }
+
+        kosaricaService.izbrisiKosarico(request.getIdUporabnik(), tenant);
 
         return Uni.createFrom().item(Empty.getDefaultInstance());
     }

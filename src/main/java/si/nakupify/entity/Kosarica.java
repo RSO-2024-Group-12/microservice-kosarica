@@ -12,6 +12,8 @@ public class Kosarica extends PanacheEntity {
 
     public Long id_izdelek;
 
+    public String tenant;
+
     public Float cena;
 
     public Integer kolicina;
@@ -22,9 +24,10 @@ public class Kosarica extends PanacheEntity {
 
     public Kosarica() {}
 
-    public Kosarica(Long id_uporabnik, Long id_izdelek, Float cena, Integer kolicina) {
+    public Kosarica(Long id_uporabnik, Long id_izdelek, String tenant, Float cena, Integer kolicina) {
         this.id_uporabnik = id_uporabnik;
         this.id_izdelek = id_izdelek;
+        this.tenant = tenant;
         this.cena = cena;
         this.kolicina = kolicina;
         this.dodano = new Timestamp(System.currentTimeMillis());
