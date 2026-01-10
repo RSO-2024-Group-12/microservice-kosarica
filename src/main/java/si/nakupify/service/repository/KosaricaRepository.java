@@ -10,8 +10,8 @@ import java.util.List;
 @ApplicationScoped
 public class KosaricaRepository implements PanacheRepository<Kosarica> {
 
-    public List<Kosarica> kosaricaUporabnik(Long id_uporabnik, String tenant) {
-        return list("id_uporabnik = ?1 and tenant = ?2", id_uporabnik, tenant);
+    public List<Kosarica> kosaricaUporabnik(Long id_uporabnik) {
+        return list("id_uporabnik", id_uporabnik);
     }
 
     public void odstraniKosaricoUporabnika(Long id_uporabnik) {

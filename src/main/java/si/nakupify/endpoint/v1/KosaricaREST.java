@@ -10,7 +10,6 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import si.nakupify.service.KosaricaService;
-import si.nakupify.service.TenantService;
 import si.nakupify.service.dto.*;
 
 import java.util.logging.Logger;
@@ -22,9 +21,6 @@ public class KosaricaREST {
 
     @Inject
     KosaricaService kosaricaService;
-
-    @Inject
-    TenantService tenantService;
 
     private Logger log = Logger.getLogger(KosaricaREST.class.getName());
 
@@ -113,15 +109,7 @@ public class KosaricaREST {
             return Response.status(parameterError.getErrorCode()).entity(parameterError).build();
         }
 
-        String tenant = tenantService.getTenant();
-
-        if (tenant == null) {
-            ErrorDTO authError = new ErrorDTO(400, "Mora biti podan JWT.");
-            log.info("Auth error: JWT mora biti podan");
-            return Response.status(authError.getErrorCode()).entity(authError).build();
-        }
-
-        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.pridobiKosarico(id, tenant);
+        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.pridobiKosarico(id);
         KosaricaDTO kosarica = pair.getValue();
         ErrorDTO error = pair.getError();
 
@@ -181,15 +169,7 @@ public class KosaricaREST {
             return Response.status(validationError.getErrorCode()).entity(validationError).build();
         }
 
-        String tenant = tenantService.getTenant();
-
-        if (tenant == null) {
-            ErrorDTO authError = new ErrorDTO(400, "Mora biti podan JWT.");
-            log.info("Auth error: JWT mora biti podan");
-            return Response.status(authError.getErrorCode()).entity(authError).build();
-        }
-
-        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.dodajKosarico(kosaricaDTO, tenant);
+        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.dodajKosarico(kosaricaDTO);
         KosaricaDTO kosarica = pair.getValue();
         ErrorDTO error = pair.getError();
 
@@ -250,15 +230,7 @@ public class KosaricaREST {
             return Response.status(validationError.getErrorCode()).entity(validationError).build();
         }
 
-        String tenant = tenantService.getTenant();
-
-        if (tenant == null) {
-            ErrorDTO authError = new ErrorDTO(400, "Mora biti podan JWT.");
-            log.info("Auth error: JWT mora biti podan");
-            return Response.status(authError.getErrorCode()).entity(authError).build();
-        }
-
-        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.posodobiKosarico(kosaricaDTO, tenant);
+        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.posodobiKosarico(kosaricaDTO);
         KosaricaDTO kosarica = pair.getValue();
         ErrorDTO error = pair.getError();
 
@@ -313,15 +285,7 @@ public class KosaricaREST {
             return Response.status(parameterError.getErrorCode()).entity(parameterError).build();
         }
 
-        String tenant = tenantService.getTenant();
-
-        if (tenant == null) {
-            ErrorDTO authError = new ErrorDTO(400, "Mora biti podan JWT.");
-            log.info("Auth error: JWT mora biti podan");
-            return Response.status(authError.getErrorCode()).entity(authError).build();
-        }
-
-        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.izbrisiKosarico(id, tenant);
+        PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaService.izbrisiKosarico(id);
         KosaricaDTO kosarica = pair.getValue();
         ErrorDTO error = pair.getError();
 

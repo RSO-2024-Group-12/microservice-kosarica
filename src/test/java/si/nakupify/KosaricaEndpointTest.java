@@ -26,7 +26,6 @@ public class KosaricaEndpointTest {
     private KosaricaDTO kosaricaDTO(Long id, List<ElementDTO> items) {
         KosaricaDTO kosaricaDTO = new KosaricaDTO();
         kosaricaDTO.setId_uporabnik(id);
-        kosaricaDTO.setTenant("org1");
         kosaricaDTO.setKosarica(items);
         return kosaricaDTO;
     }
@@ -38,7 +37,7 @@ public class KosaricaEndpointTest {
     @Test
     void getKosaricaUporabnika_test() {
         List<ElementDTO> kosarica = List.of(new ElementDTO(1L, 1L, "Test", 9.99F, 2));
-        when(kosaricaService.pridobiKosarico(5L, "org1")).thenReturn(new PairDTO<>(kosaricaDTO(5L, kosarica), null));
+        when(kosaricaService.pridobiKosarico(5L)).thenReturn(new PairDTO<>(kosaricaDTO(5L, kosarica), null));
 
         given()
                 .accept(ContentType.JSON)
@@ -47,17 +46,16 @@ public class KosaricaEndpointTest {
         .then()
                 .statusCode(200)
                 .body("id_uporabnik", equalTo(5))
-                .body("tenant", equalTo("org1"))
                 .body("kosarica", hasSize(1));
 
-        verify(kosaricaService).pridobiKosarico(5L, "org1");
+        verify(kosaricaService).pridobiKosarico(5L);
     }
 
     @Test
     void createKosarica_test() {
         List<ElementDTO> kosarica = List.of(new ElementDTO(1L, 1L, "Test", 9.99F, 2),
                 new ElementDTO(2L, 2L, "Test", 99.99F, 5));
-        when(kosaricaService.dodajKosarico(any(), any())).thenReturn(new PairDTO<>(kosaricaDTO(5L, kosarica), null));
+        when(kosaricaService.dodajKosarico(any())).thenReturn(new PairDTO<>(kosaricaDTO(5L, kosarica), null));
 
         String requestBody = """
         {
@@ -81,16 +79,15 @@ public class KosaricaEndpointTest {
         .then()
                 .statusCode(201)
                 .body("id_uporabnik", equalTo(5))
-                .body("tenant", equalTo("org1"))
                 .body("kosarica", hasSize(2));
 
-        verify(kosaricaService).dodajKosarico(any(), any());
+        verify(kosaricaService).dodajKosarico(any());
     }
 
     @Test
     void updateKosarica_test() {
         List<ElementDTO> kosarica = List.of(new ElementDTO(1L, 1L, "Test", 9.99F, 5));
-        when(kosaricaService.posodobiKosarico(any(), any())).thenReturn(new PairDTO<>(kosaricaDTO(5L, kosarica), null));
+        when(kosaricaService.posodobiKosarico(any())).thenReturn(new PairDTO<>(kosaricaDTO(5L, kosarica), null));
 
         String requestBody = """
         {
@@ -115,15 +112,14 @@ public class KosaricaEndpointTest {
         .then()
                 .statusCode(200)
                 .body("id_uporabnik", equalTo(5))
-                .body("tenant", equalTo("org1"))
                 .body("kosarica", hasSize(1));
 
-        verify(kosaricaService).posodobiKosarico(any(), any());
+        verify(kosaricaService).posodobiKosarico(any());
     }
 
     @Test
     void deleteKosarica_test() {
-        when(kosaricaService.izbrisiKosarico(any(), any())).thenReturn(new PairDTO<>(kosaricaDTO(5L, new ArrayList<>()), null));
+        when(kosaricaService.izbrisiKosarico(any())).thenReturn(new PairDTO<>(kosaricaDTO(5L, new ArrayList<>()), null));
 
         given()
                 .accept(ContentType.JSON)
@@ -132,6 +128,6 @@ public class KosaricaEndpointTest {
         .then()
                 .statusCode(204);
 
-        verify(kosaricaService).izbrisiKosarico(5L, "org1");
+        verify(kosaricaService).izbrisiKosarico(5L);
     }
 }
