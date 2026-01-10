@@ -16,8 +16,7 @@ message gRPCElementDTO {
 
 message gRPCKosaricaDTO {
   int64 id_uporabnik = 1;
-  string tenant = 2;
-  repeated gRPCElementDTO kosarica = 3;
+  repeated gRPCElementDTO kosarica = 2;
 }
 
 service gRPCKosaricaService {

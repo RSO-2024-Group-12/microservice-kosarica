@@ -49,7 +49,6 @@ public class KosaricaServiceTest {
         kosarica.id = id;
         kosarica.id_uporabnik = id_uporabnik;
         kosarica.id_izdelek = id_izdelek;
-        kosarica.tenant = "org1";
         kosarica.cena = 9.99F;
         kosarica.kolicina = 1;
         return kosarica;
@@ -59,7 +58,6 @@ public class KosaricaServiceTest {
         KosaricaDTO kosaricaDTO = new KosaricaDTO();
 
         kosaricaDTO.setId_uporabnik(id);
-        kosaricaDTO.setTenant("org1");
         kosaricaDTO.setKosarica(items);
 
         return kosaricaDTO;
@@ -68,12 +66,12 @@ public class KosaricaServiceTest {
     @Test
     void pridobiKosarico_test() {
         List<Kosarica> kosarica = List.of(kosaricaEntity(1L, 5L, 1L));
-        when(kosaricaRepository.kosaricaUporabnik(5L, "org1")).thenReturn(kosarica);
+        when(kosaricaRepository.kosaricaUporabnik(5L)).thenReturn(kosarica);
 
         IzdelekDTO izdelekDTO = new IzdelekDTO(1L, "Test", 9.99F);
         when(izdelekClient.getIzdelekDTO(1L)).thenReturn(new PairDTO<>(izdelekDTO, null));
 
-        PairDTO<KosaricaDTO, ErrorDTO> result = kosaricaService.pridobiKosarico(5L, "org1");
+        PairDTO<KosaricaDTO, ErrorDTO> result = kosaricaService.pridobiKosarico(5L);
 
         assertNotNull(result);
         assertNotNull(result.getValue());
@@ -82,10 +80,9 @@ public class KosaricaServiceTest {
         KosaricaDTO kosaricaDTO = result.getValue();
 
         assertEquals(5L, kosaricaDTO.getId_uporabnik());
-        assertEquals("org1", kosaricaDTO.getTenant());
         assertEquals(1, kosaricaDTO.getKosarica().size());
 
-        verify(kosaricaRepository).kosaricaUporabnik(5L, "org1");
+        verify(kosaricaRepository).kosaricaUporabnik(5L);
         verify(izdelekClient).getIzdelekDTO(1L);
     }
 
@@ -104,13 +101,12 @@ public class KosaricaServiceTest {
 
         KosaricaDTO mockDTO = new KosaricaDTO();
         mockDTO.setId_uporabnik(5L);
-        mockDTO.setTenant("org1");
         mockDTO.setKosarica(List.of(new ElementDTO(5L, 1L, "Test", 9.99F, 1)));
 
-        doReturn(new PairDTO<>(mockDTO, null)).when(kosaricaService).pridobiKosarico(anyLong(), any());
+        doReturn(new PairDTO<>(mockDTO, null)).when(kosaricaService).pridobiKosarico(anyLong());
 
         List<ElementDTO> items = List.of(new ElementDTO(null, 1L, "Test", 9.99F, 1));
-        PairDTO<KosaricaDTO, ErrorDTO> result = kosaricaService.dodajKosarico(makeKosaricaDTO(5L, items), "org1");
+        PairDTO<KosaricaDTO, ErrorDTO> result = kosaricaService.dodajKosarico(makeKosaricaDTO(5L, items));
 
         assertNotNull(result);
         assertNotNull(result.getValue());
@@ -119,13 +115,12 @@ public class KosaricaServiceTest {
         KosaricaDTO kosaricaDTO = result.getValue();
 
         assertEquals(5L, kosaricaDTO.getId_uporabnik());
-        assertEquals("org1", kosaricaDTO.getTenant());
         assertEquals(1, kosaricaDTO.getKosarica().size());
 
         verify(skladisceClient).postRequestDTO(any());
         verify(kosaricaRepository).persist(any(Kosarica.class));
         verify(vertxMock).setTimer(anyLong(), any());
-        verify(kosaricaService).pridobiKosarico(5L, "org1");
+        verify(kosaricaService).pridobiKosarico(5L);
     }
 
     @Test
@@ -137,13 +132,12 @@ public class KosaricaServiceTest {
 
         KosaricaDTO mockDTO = new KosaricaDTO();
         mockDTO.setId_uporabnik(5L);
-        mockDTO.setTenant("org1");
         mockDTO.setKosarica(List.of(new ElementDTO(5L, 1L, "Test", 9.99F, 5)));
 
-        doReturn(new PairDTO<>(mockDTO, null)).when(kosaricaService).pridobiKosarico(anyLong(), any());
+        doReturn(new PairDTO<>(mockDTO, null)).when(kosaricaService).pridobiKosarico(anyLong());
 
         List<ElementDTO> items = List.of(new ElementDTO(5L, 1L, "Test", 9.99F, 5));
-        PairDTO<KosaricaDTO, ErrorDTO> result = kosaricaService.posodobiKosarico(makeKosaricaDTO(5L, items), "org1");
+        PairDTO<KosaricaDTO, ErrorDTO> result = kosaricaService.posodobiKosarico(makeKosaricaDTO(5L, items));
 
         assertNotNull(result);
         assertNotNull(result.getValue());
@@ -152,12 +146,11 @@ public class KosaricaServiceTest {
         KosaricaDTO kosaricaDTO = result.getValue();
 
         assertEquals(5L, kosaricaDTO.getId_uporabnik());
-        assertEquals("org1", kosaricaDTO.getTenant());
         assertEquals(1, kosaricaDTO.getKosarica().size());
 
         verify(kosaricaRepository).findById(5L);
         verify(skladisceClient).postRequestDTO(any());
-        verify(kosaricaService).pridobiKosarico(5L, "org1");
+        verify(kosaricaService).pridobiKosarico(5L);
     }
 
     @Test
@@ -166,9 +159,9 @@ public class KosaricaServiceTest {
         mockDTO.setId_uporabnik(5L);
         mockDTO.setKosarica(Collections.emptyList());
 
-        doReturn(new PairDTO<>(mockDTO, null)).when(kosaricaService).pridobiKosarico(anyLong(), any());
+        doReturn(new PairDTO<>(mockDTO, null)).when(kosaricaService).pridobiKosarico(anyLong());
 
-        PairDTO<KosaricaDTO, ErrorDTO> result = kosaricaService.izbrisiKosarico(5L, "org1");
+        PairDTO<KosaricaDTO, ErrorDTO> result = kosaricaService.izbrisiKosarico(5L);
 
         assertNotNull(result);
         assertNotNull(result.getValue());
@@ -177,6 +170,6 @@ public class KosaricaServiceTest {
         assertTrue(result.getValue().getKosarica().isEmpty());
 
         verify(kosaricaRepository).odstraniKosaricoUporabnika(5L);
-        verify(kosaricaService).pridobiKosarico(5L, "org1");
+        verify(kosaricaService).pridobiKosarico(5L);
     }
 }

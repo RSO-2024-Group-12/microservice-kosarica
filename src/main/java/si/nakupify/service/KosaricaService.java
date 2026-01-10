@@ -46,29 +46,22 @@ public class KosaricaService {
         this.vertx = vertx;
     }
 
-    public RequestDTO createRequest(String type, Long id_product, Long id_user, String tenant, Integer add, Integer remove) {
+    public RequestDTO createRequest(String type, Long id_product, Long id_user, Integer add, Integer remove) {
         RequestDTO requestDTO = new RequestDTO();
         requestDTO.setId_request(UUID.randomUUID().toString());
         requestDTO.setType(type);
         requestDTO.setId_product(id_product);
         requestDTO.setId_user(id_user);
-        requestDTO.setTenant(tenant);
         requestDTO.setQuantityAdd(add);
         requestDTO.setQuantityRemove(remove);
         return requestDTO;
     }
 
-    public PairDTO<KosaricaDTO, ErrorDTO> pridobiKosarico(Long id_uporabnik, String tenant) {
-        List<Kosarica> kosaricaUporabnika = kosaricaRepository.kosaricaUporabnik(id_uporabnik, tenant);
+    public PairDTO<KosaricaDTO, ErrorDTO> pridobiKosarico(Long id_uporabnik) {
+        List<Kosarica> kosaricaUporabnika = kosaricaRepository.kosaricaUporabnik(id_uporabnik);
         List<ElementDTO> elementDTOS = new ArrayList<>();
 
         for (Kosarica kosarica : kosaricaUporabnika) {
-            if (!tenant.equals(kosarica.tenant)) {
-                log.info("Auth Error: Ne smete brati ali spreminjati podatkov druge organizacije");
-                ErrorDTO notFoundError = new ErrorDTO(401, "Ni mogoče brati ali spreminjati podatkov druge organizacije.");
-                return new PairDTO<>(null, notFoundError);
-            }
-
             ElementDTO elementDTO = new ElementDTO();
             elementDTO.setId_kosarica(kosarica.id);
             elementDTO.setCena(kosarica.cena);
@@ -88,22 +81,21 @@ public class KosaricaService {
             elementDTOS.add(elementDTO);
         }
 
-        return new PairDTO<>(new KosaricaDTO(id_uporabnik, tenant, elementDTOS), null);
+        return new PairDTO<>(new KosaricaDTO(id_uporabnik, elementDTOS), null);
     }
 
     @Transactional
-    public PairDTO<KosaricaDTO, ErrorDTO> dodajKosarico(KosaricaDTO kosaricaDTO, String tenant) {
+    public PairDTO<KosaricaDTO, ErrorDTO> dodajKosarico(KosaricaDTO kosaricaDTO) {
         ElementDTO elementDTO = kosaricaDTO.getKosarica().get(0);
 
         Kosarica kosarica = new Kosarica();
         kosarica.id_uporabnik = kosaricaDTO.getId_uporabnik();
         kosarica.id_izdelek = elementDTO.getId_izdelek();
-        kosarica.tenant = tenant;
         kosarica.cena = elementDTO.getCena();
         kosarica.kolicina = elementDTO.getKolicina();
 
         RequestDTO requestDTO = createRequest("RESERVATION_ADDED", elementDTO.getId_izdelek(),
-                kosaricaDTO.getId_uporabnik(), tenant, elementDTO.getKolicina(), 0);
+                kosaricaDTO.getId_uporabnik(), elementDTO.getKolicina(), 0);
         PairDTO<ResponseDTO, ErrorDTO> pair = skladisceClient.postRequestDTO(requestDTO);
         ResponseDTO responseDTO = pair.getValue();
         ErrorDTO error = pair.getError();
@@ -123,18 +115,18 @@ public class KosaricaService {
            Kosarica expired = kosaricaRepository.findById(kosarica.id);
            if (expired != null) {
                RequestDTO requestExpiredDTO = createRequest("RESERVATION_EXPIRED", expired.id_izdelek,
-                       expired.id_uporabnik, tenant,0, expired.kolicina);
+                       expired.id_uporabnik,0, expired.kolicina);
                skladisceClient.postRequestDTO(requestExpiredDTO);
 
                kosaricaRepository.deleteById(expired.id);
            }
         });
 
-        return pridobiKosarico(kosaricaDTO.getId_uporabnik(), tenant);
+        return pridobiKosarico(kosaricaDTO.getId_uporabnik());
     }
 
     @Transactional
-    public PairDTO<KosaricaDTO, ErrorDTO> posodobiKosarico(KosaricaDTO kosaricaDTO, String tenant) {
+    public PairDTO<KosaricaDTO, ErrorDTO> posodobiKosarico(KosaricaDTO kosaricaDTO) {
         ElementDTO elementDTO = kosaricaDTO.getKosarica().get(0);
 
         Kosarica kosarica = kosaricaRepository.findById(elementDTO.getId_kosarica());
@@ -144,15 +136,9 @@ public class KosaricaService {
             return new PairDTO<>(null, notFoundError);
         }
 
-        if (!tenant.equals(kosarica.tenant)) {
-            log.info("Auth Error: Ne smete brati ali spreminjati podatkov druge organizacije");
-            ErrorDTO notFoundError = new ErrorDTO(401, "Ni mogoče brati ali spreminjati podatkov druge organizacije.");
-            return new PairDTO<>(null, notFoundError);
-        }
-
         String str = (elementDTO.getKolicina() == 0) ? "RESERVATION_REMOVED" : "RESERVATION_UPDATED";
         RequestDTO requestDTO = createRequest(str, elementDTO.getId_izdelek(),
-                kosaricaDTO.getId_uporabnik(), tenant, elementDTO.getKolicina(), kosarica.kolicina);
+                kosaricaDTO.getId_uporabnik(), elementDTO.getKolicina(), kosarica.kolicina);
 
         PairDTO<ResponseDTO, ErrorDTO> pair = skladisceClient.postRequestDTO(requestDTO);
         ResponseDTO responseDTO = pair.getValue();
@@ -169,13 +155,13 @@ public class KosaricaService {
 
         kosarica.kolicina = elementDTO.getKolicina();
 
-        return pridobiKosarico(kosaricaDTO.getId_uporabnik(), tenant);
+        return pridobiKosarico(kosaricaDTO.getId_uporabnik());
     }
 
     @Transactional
-    public PairDTO<KosaricaDTO, ErrorDTO> izbrisiKosarico(Long id_uporabnik, String tenant) {
+    public PairDTO<KosaricaDTO, ErrorDTO> izbrisiKosarico(Long id_uporabnik) {
         kosaricaRepository.odstraniKosaricoUporabnika(id_uporabnik);
-        return pridobiKosarico(id_uporabnik, tenant);
+        return pridobiKosarico(id_uporabnik);
     }
 
 }
